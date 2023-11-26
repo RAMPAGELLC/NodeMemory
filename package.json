@@ -2,25 +2,29 @@
   "name": "nodememory",
   "version": "1.0.0",
   "main": "src/server.js",
-  "files": ["/src"],
+  "files": [
+    "/src"
+  ],
   "description": "API library for a scuffed Node Memory.",
   "author": "rampagecorp",
   "funding": {
-      "type": "patreon",
-      "url": "https://www.patreon.com/metatable"
+    "type": "patreon",
+    "url": "https://www.patreon.com/metatable"
   },
   "contributors": [
-      {
-          "name": "Jake",
-          "email": "cm_jake@rampagestudios.org",
-          "url": "https://metatable.dev/"
-      }
+    {
+      "name": "Jake",
+      "email": "cm_jake@rampagestudios.org",
+      "url": "https://metatable.dev/"
+    }
   ],
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "morgan": "^1.10.0"
+    "fs": "^0.0.1-security",
+    "morgan": "^1.10.0",
+    "path": "^0.12.7"
   }
 }

@@ -4,6 +4,8 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
 const Config = require('./config');
 const app = express();
 
@@ -18,6 +20,17 @@ function validateAccessToken(req, res, next) {
         res.status(401).json({ error: 'Invalid access token' });
     }
 }
+
+function cleanExpiredKeys() {
+    const currentTime = Date.now();
+    for (const key in Memory) {
+        if (Memory[key].expire == 0) continue;
+        if ((Memory[key].expire * 1000) > 0 && currentTime > Memory[key].expire)  delete Memory[key];
+    }
+}
+
+setInterval(cleanExpiredKeys, 60 * 1000);
+
 app.use(morgan('common', {
     stream: fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
 }));  
@@ -29,7 +42,7 @@ app.get('/ping', validateAccessToken, async (req, res, next) => {
 });
 
 app.all('/set', validateAccessToken, async (req, res, next) => {
-    const expire = req.query.expire != undefined ? parseInt(Buffer.from(req.query.expire, "hex").toString(), 10) : 0;
+    const expire = req.query.expire != undefined ? preq.query.expire : 0;
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
     Memory[req.query.key] = {
