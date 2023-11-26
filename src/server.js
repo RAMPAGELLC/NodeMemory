@@ -9,6 +9,7 @@ const path = require("path");
 const Config = require('./config');
 const app = express();
 const Cache = require('memory-cache');
+const schedule = require('node-schedule');
 
 function validateAccessToken(req, res, next) {
     const accessToken = req.headers['x-access-token'] || req.query.token;
@@ -28,7 +29,7 @@ function cleanExpiredKeys() {
     });
 }
 
-setInterval(cleanExpiredKeys, 60 * 1000);
+schedule.scheduleJob('*/1 * * * *', cleanExpiredKeys);
 
 app.use(morgan('common', {
     stream: fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
