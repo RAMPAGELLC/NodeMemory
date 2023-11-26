@@ -42,7 +42,7 @@ app.get('/ping', validateAccessToken, async (req, res, next) => {
 });
 
 app.all('/set', validateAccessToken, async (req, res, next) => {
-    const expire = req.query.expire != undefined ? preq.query.expire : 0;
+    const expire = req.query.expire != undefined ? req.query.expire : 0;
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
     Memory[req.query.key] = {
