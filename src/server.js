@@ -8,8 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const Config = require('./config');
 const app = express();
-
-let Memory = {};
+const Cache = require('memory-cache');
 
 function validateAccessToken(req, res, next) {
     const accessToken = req.headers['x-access-token'] || req.query.token;
@@ -23,10 +22,10 @@ function validateAccessToken(req, res, next) {
 
 function cleanExpiredKeys() {
     const currentTime = Date.now();
-    for (const key in Memory) {
-        if (Memory[key].expire == 0) continue;
-        if ((Memory[key].expire * 1000) > 0 && currentTime > Memory[key].expire)  delete Memory[key];
-    }
+    Cache.keys().forEach(key => {
+        const expirationTime = Cache.get(key).expire * 1000;
+        if (expirationTime > 0 && currentTime > expirationTime) Cache.del(key);
+    });
 }
 
 setInterval(cleanExpiredKeys, 60 * 1000);
@@ -45,10 +44,10 @@ app.all('/set', validateAccessToken, async (req, res, next) => {
     const expire = req.query.expire != undefined ? req.query.expire : 0;
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
-    Memory[req.query.key] = {
+    Cache.put(req.query.key, {
         expire: expire,
         value: btoa(req.query.value)
-    }
+    }, expire * 1000);
 
     return res.send({ success: true });
 });
@@ -56,9 +55,10 @@ app.all('/set', validateAccessToken, async (req, res, next) => {
 app.all('/get', validateAccessToken, async (req, res, next) => {
     if (Config.Debug) console.log(`GET | Key: ${req.query.key}`);
 
-    if (Memory[req.query.key] == null) return res.send({ success: false, message: 'Key not found' });
+    const cachedValue = Cache.get(req.query.key);
+    if (!cachedValue) return res.send({ success: false, message: 'Key not found' });
 
-    return res.send({ success: true, response: atob(Memory[req.query.key].value) });
+    return res.send({ success: true, response: atob(cachedValue.value) });
 });
 
 app.use(cors({
