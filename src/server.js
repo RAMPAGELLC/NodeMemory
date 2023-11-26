@@ -34,11 +34,9 @@ app.get('/ping', validateAccessToken, async (req, res, next) => {
 app.all('/set', validateAccessToken, async (req, res, next) => {
     const expire = req.query.expire !== undefined ? parseInt(req.query.expire, 10) * 1000 : 0;
     if (isNaN(expire)) return res.status(400).json({ error: 'Invalid expiration value' });
-    expire = Math.min(expire, 2147483647);
-
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
-    Cache.put(req.query.key, btoa(req.query.value), expire);
+    Cache.put(req.query.key, btoa(req.query.value), Math.min(expire, 2147483647));
 
     return res.send({ success: true });
 });
