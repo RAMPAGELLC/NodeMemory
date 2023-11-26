@@ -10,6 +10,7 @@ const Config = require('./config');
 const app = express();
 const Cache = require('memory-cache');
 const schedule = require('node-schedule');
+const MAX_EXPIRATION_SECONDS = 2147483647n; // (68 years)
 
 function validateAccessToken(req, res, next) {
     const accessToken = req.headers['x-access-token'] || req.query.token;
@@ -42,7 +43,7 @@ app.get('/ping', validateAccessToken, async (req, res, next) => {
 });
 
 app.all('/set', validateAccessToken, async (req, res, next) => {
-    const expire = req.query.expire != undefined ? req.query.expire : 0;
+    const expire = req.query.expire !== undefined ? Math.min(req.query.expire, MAX_EXPIRATION_SECONDS) : 0;
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
     Cache.put(req.query.key, {
