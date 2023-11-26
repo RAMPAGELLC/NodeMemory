@@ -9,7 +9,6 @@ const path = require("path");
 const Config = require('./config');
 const app = express();
 const Cache = require('memory-cache');
-const schedule = require('node-schedule');
 
 function validateAccessToken(req, res, next) {
     const accessToken = req.headers['x-access-token'] || req.query.token;
@@ -21,15 +20,6 @@ function validateAccessToken(req, res, next) {
     }
 }
 
-function cleanExpiredKeys() {
-    const currentTime = Date.now();
-    Cache.keys().forEach(key => {
-        const expirationTime = Cache.get(key).expire * 1000;
-        if (expirationTime > 0 && currentTime > expirationTime) Cache.del(key);
-    });
-}
-
-schedule.scheduleJob('*/1 * * * *', cleanExpiredKeys);
 
 app.use(morgan('common', {
     stream: fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
@@ -42,13 +32,13 @@ app.get('/ping', validateAccessToken, async (req, res, next) => {
 });
 
 app.all('/set', validateAccessToken, async (req, res, next) => {
-    const expire = req.query.expire !== undefined ? Math.min(req.query.expire, 2147483647) : 0;
+    const expire = req.query.expire !== undefined ? parseInt(req.query.expire, 10) * 1000 : 0;
+    if (isNaN(expire)) return res.status(400).json({ error: 'Invalid expiration value' });
+    expire = Math.min(expire, 2147483647);
+
     if (Config.Debug) console.log(`SET | Key: ${req.query.key} | Value: ${req.query.value} | Expire: ${expire}`);
 
-    Cache.put(req.query.key, {
-        expire: expire,
-        value: btoa(req.query.value)
-    }, expire * 1000);
+    Cache.put(req.query.key, btoa(req.query.value), expire);
 
     return res.send({ success: true });
 });
@@ -56,10 +46,10 @@ app.all('/set', validateAccessToken, async (req, res, next) => {
 app.all('/get', validateAccessToken, async (req, res, next) => {
     if (Config.Debug) console.log(`GET | Key: ${req.query.key}`);
 
-    const cachedValue = Cache.get(req.query.key);
-    if (!cachedValue) return res.send({ success: false, message: 'Key not found' });
+    const value = Cache.get(req.query.key);
+    if (!value) return res.send({ success: false, message: 'Key not found' });
 
-    return res.send({ success: true, response: atob(cachedValue.value) });
+    return res.send({ success: true, response: atob(value) });
 });
 
 app.use(cors({
